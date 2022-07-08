@@ -9,7 +9,7 @@ class IterableTests(unittest.TestCase):
         self.assertEqual(match_dict({'a': _, 'b': 2}, {'a': 1, 'b': 2}), (True, [1]))
 
     def test_match_dict_ordering(self):
-        for i in range(100):
+        for _ in range(100):
             self.assertEqual(match_dict({'a': _, 'b': _}, {'a': 1, 'b': 2}), (True, [1, 2]))
 
     def test_match_asymmetric(self):
@@ -33,7 +33,7 @@ class IterableTests(unittest.TestCase):
         self.assertEqual(match_dict({"a": _, _: int}, x), (True, [1, "b", 2]))
 
     def test_multi_underscore_ambiguous(self):
-        for i in range(20):
+        for _ in range(20):
             self.assertEqual(match_dict({"a": _, _: int},
                                         {"a": 1, "b": 2, "c": 3}), (True, [1, "b", 2]))
 

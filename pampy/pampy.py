@@ -42,18 +42,17 @@ REST = TAIL = TailType()
 
 
 def run(action, var):
-    if callable(action):
-        if isinstance(var, Iterable):
-            try:
-                return action(*var)
-            except TypeError as err:
-                raise MatchError(get_lambda_args_error_msg(action, var, err))
-        elif isinstance(var, BoxedArgs):
-            return action(var.get())
-        else:
-            return action(var)
-    else:
+    if not callable(action):
         return action
+    if isinstance(var, Iterable):
+        try:
+            return action(*var)
+        except TypeError as err:
+            raise MatchError(get_lambda_args_error_msg(action, var, err))
+    elif isinstance(var, BoxedArgs):
+        return action(var.get())
+    else:
+        return action(var)
 
 
 def match_value(pattern, value) -> Tuple[bool, List]:
@@ -150,18 +149,16 @@ def match_iterable(patterns, values) -> Tuple[bool, List]:
         if pattern is HEAD:
             if i != 0:
                 raise MatchError("HEAD can only be in first position of a pattern.")
+            if value is PaddedValue:
+                return False, []
             else:
-                if value is PaddedValue:
-                    return False, []
-                else:
-                    total_extracted += [value]
+                total_extracted += [value]
         elif pattern is TAIL:
             if not only_padded_values_follow(padded_pairs, i):
                 raise MatchError("TAIL must me in last position of the pattern.")
-            else:
-                tail = [value for (pattern, value) in padded_pairs[i:] if value is not PaddedValue]
-                total_extracted.append(tail)
-                break
+            tail = [value for (pattern, value) in padded_pairs[i:] if value is not PaddedValue]
+            total_extracted.append(tail)
+            break
         else:
             matched, extracted = match_value(pattern, value)
             if not matched:
@@ -179,8 +176,7 @@ def match_typing_stuff(pattern, value) -> Tuple[bool, List]:
             is_matched, extracted = match_value(subpattern, value)
             if is_matched:
                 return True, extracted
-        else:
-            return False, []
+        return False, []
     elif is_newtype(pattern):
         return match_value(pattern.__supertype__, value)
     elif is_generic(pattern):
@@ -210,17 +206,18 @@ def match_generic(pattern: Generic[T], value) -> Tuple[bool, List]:
             return False, []
 
     elif get_extra(pattern) == ACallable:
-        if callable(value):
-            spec = inspect.getfullargspec(value)
-            annotations = spec.annotations
-            artgtypes = [annotations.get(arg, Any) for arg in spec.args]
-            ret_type = annotations.get('return', Any)
-            if pattern == Callable[[*artgtypes], ret_type]:
-                return True, [value]
-            else:
-                return False, []
-        else:
+        if not callable(value):
             return False, []
+
+        spec = inspect.getfullargspec(value)
+        annotations = spec.annotations
+        artgtypes = [annotations.get(arg, Any) for arg in spec.args]
+        ret_type = annotations.get('return', Any)
+        return (
+            (True, [value])
+            if pattern == Callable[[*artgtypes], ret_type]
+            else (False, [])
+        )
 
     elif get_extra(pattern) == tuple:
         return match_value(pattern.__args__, value)
@@ -237,11 +234,7 @@ def match_generic(pattern: Generic[T], value) -> Tuple[bool, List]:
             return False, []
 
         value_matched, _captured = match_value(v_type, value[key_example])
-        if not value_matched:
-            return False, []
-        else:
-            return True, [value]
-
+        return (True, [value]) if value_matched else (False, [])
     elif issubclass(get_extra(pattern), Iterable):
         type_matched, _captured = match_value(get_extra(pattern), value)
         if not type_matched:
@@ -249,10 +242,7 @@ def match_generic(pattern: Generic[T], value) -> Tuple[bool, List]:
         v_type, = pattern.__args__
         v = peek(value)
         value_matched, _captured = match_value(v_type, v)
-        if not value_matched:
-            return False, []
-        else:
-            return True, [value]
+        return (True, [value]) if value_matched else (False, [])
     else:
         return False, []
 
@@ -298,11 +288,10 @@ def match(var, *args, default=NoDefault, strict=True):
             lambda_args = args if len(args) > 0 else BoxedArgs(var)
             return run(action, lambda_args)
 
-    if default is NoDefault:
-        if _ not in patterns:
-            raise MatchError("'_' not provided. This case is not handled:\n%s" % str(var))
-    else:
+    if default is not NoDefault:
         return default
+    if _ not in patterns:
+        raise MatchError("'_' not provided. This case is not handled:\n%s" % str(var))
 
 
 class MatchError(Exception):
