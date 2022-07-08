@@ -102,7 +102,4 @@ def is_typing_stuff(pattern):
 
 
 def get_real_type(subtype):
-    if is_newtype(subtype):
-        return get_real_type(subtype.__supertype__)
-    else:
-        return subtype
+    return get_real_type(subtype.__supertype__) if is_newtype(subtype) else subtype

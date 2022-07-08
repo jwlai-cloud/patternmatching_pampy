@@ -28,28 +28,42 @@ class PampyElaborateTests(unittest.TestCase):
     def test_slide1(self):
         _input = [1, 2, 3]
         pattern = [1, _, 3]
-        action = lambda x: "it's {}".format(x)
+        action = lambda x: f"it's {x}"
         self.assertEqual(match(_input, pattern, action), "it's 2")
 
     def test_parser(self):
         def parser(exp):
-            return match(exp,
-                         3, "the integer 3",
-                         float, "any float number",
-                         int, "any integer",
-                         "ciao", "the string ciao",
-                         dict, "any dictionary",
-                         str, "any string",
-                         (int, int), "a tuple made of two ints",
-                         [1], "the list [1]",
-                         [1, 2, 3], "the list [1, 2, 3]",
-                         [1, _, 3], "the list [1, _, 3]",
-                         (str, str), lambda a, b: "%s %s" % (a, b),
-                         [1, 2, _], lambda x: "the list [1, 2, _]",
-                         [1, 2, 4], "the list [1, 2, 4]",  # this can never be matched
-
-                         [1, [2, _], _], lambda a, b: "[1, [2, %s], %s]" % (a, b),
-                         )
+            return match(
+                exp,
+                3,
+                "the integer 3",
+                float,
+                "any float number",
+                int,
+                "any integer",
+                "ciao",
+                "the string ciao",
+                dict,
+                "any dictionary",
+                str,
+                "any string",
+                (int, int),
+                "a tuple made of two ints",
+                [1],
+                "the list [1]",
+                [1, 2, 3],
+                "the list [1, 2, 3]",
+                [1, _, 3],
+                "the list [1, _, 3]",
+                (str, str),
+                lambda a, b: f"{a} {b}",
+                [1, 2, _],
+                lambda x: "the list [1, 2, _]",
+                [1, 2, 4],
+                "the list [1, 2, 4]",
+                [1, [2, _], _],
+                lambda a, b: f"[1, [2, {a}], {b}]",
+            )
 
         assert parser(3) == "the integer 3"
         assert parser(5) == "any integer"
@@ -187,8 +201,7 @@ class PampyElaborateTests(unittest.TestCase):
                         return True, [datetime.strptime(dt, pattern)]
                     except Exception:
                         continue
-                else:
-                    return False, []
+                return False, []
             return f
 
         def to_datetime(dt: Union[

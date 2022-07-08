@@ -123,10 +123,14 @@ class PampyBasicTests(unittest.TestCase):
 
     def test_regex_groups(self):
         def what_is(pet):
-            return match(pet,
-                re.compile('(\w+)-(\w+)-cat$'),     lambda name, my: 'cat '+name,
-                re.compile('(\w+)-(\w+)-dog$'),     lambda name, my: 'dog '+name,
-                _,                                  "something else"
+            return match(
+                pet,
+                re.compile('(\w+)-(\w+)-cat$'),
+                lambda name, my: f'cat {name}',
+                re.compile('(\w+)-(\w+)-dog$'),
+                lambda name, my: f'dog {name}',
+                _,
+                "something else",
             )
 
         self.assertEqual(what_is('fuffy-my-dog'), 'dog fuffy')
